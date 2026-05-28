@@ -1,0 +1,27 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+
+## Rider/VS
+.idea/
+.vs/
+*.DotSettings.user
+
+## Logs
+logs/
+
+## Storage
+storage/*.db
+
+## Tailored CVs (generated)
+cv/tailored/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Playwright browsers
+.playwright/
