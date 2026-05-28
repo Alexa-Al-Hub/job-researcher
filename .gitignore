@@ -16,8 +16,8 @@ logs/
 ## Storage
 storage/*.db
 
-## Tailored CVs (generated)
-cv/tailored/
+## CV folder
+cv/
 
 ## OS
 .DS_Store
