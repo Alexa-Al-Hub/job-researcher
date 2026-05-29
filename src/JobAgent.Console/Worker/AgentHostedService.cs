@@ -1,4 +1,5 @@
 using JobAgent.Application.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -6,16 +7,16 @@ namespace JobAgent.Console.Worker;
 
 public class AgentHostedService : BackgroundService
 {
-    private readonly IOrchestrator _orchestrator;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<AgentHostedService> _logger;
     private readonly IHostApplicationLifetime _lifetime;
 
     public AgentHostedService(
-        IOrchestrator orchestrator,
+        IServiceScopeFactory scopeFactory,
         ILogger<AgentHostedService> logger,
         IHostApplicationLifetime lifetime)
     {
-        _orchestrator = orchestrator;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _lifetime = lifetime;
     }
@@ -26,7 +27,9 @@ public class AgentHostedService : BackgroundService
 
         try
         {
-            await _orchestrator.RunAsync(stoppingToken);
+            using var scope = _scopeFactory.CreateScope();
+            var orchestrator = scope.ServiceProvider.GetRequiredService<IOrchestrator>();
+            await orchestrator.RunAsync(stoppingToken);
             _logger.LogInformation("Job Agent completed successfully.");
         }
         catch (OperationCanceledException)

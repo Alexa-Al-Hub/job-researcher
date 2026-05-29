@@ -6,5 +6,5 @@ namespace JobAgent.Application.Interfaces;
 public interface IScraper
 {
     Platform Platform { get; }
-    Task<IReadOnlyList<Job>> ScrapeAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default);
 }

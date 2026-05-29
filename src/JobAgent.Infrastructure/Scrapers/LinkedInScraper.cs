@@ -15,7 +15,7 @@ public class LinkedInScraper : IScraper
         _logger = logger;
     }
 
-    public Task<IReadOnlyList<Job>> ScrapeAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
     {
         _logger.LogWarning("LinkedIn scraper is not yet implemented (needs credentials)");
         return Task.FromResult<IReadOnlyList<Job>>(Array.Empty<Job>());

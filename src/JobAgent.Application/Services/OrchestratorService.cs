@@ -10,7 +10,10 @@ public class OrchestratorService : IOrchestrator
 {
     private readonly IEnumerable<IScraper> _scrapers;
     private readonly IEnumerable<IApplier> _appliers;
-    private readonly IJobRepository _repository;
+    private readonly IJobRepository _jobRepository;
+    private readonly IApplicationRepository _applicationRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly ISearchCriteriaRepository _searchCriteriaRepository;
     private readonly ICvTailoringService _cvTailoring;
     private readonly IOptions<AgentOptions> _agentOptions;
     private readonly IOptions<RateLimitOptions> _rateLimitOptions;
@@ -19,7 +22,10 @@ public class OrchestratorService : IOrchestrator
     public OrchestratorService(
         IEnumerable<IScraper> scrapers,
         IEnumerable<IApplier> appliers,
-        IJobRepository repository,
+        IJobRepository jobRepository,
+        IApplicationRepository applicationRepository,
+        IUserRepository userRepository,
+        ISearchCriteriaRepository searchCriteriaRepository,
         ICvTailoringService cvTailoring,
         IOptions<AgentOptions> agentOptions,
         IOptions<RateLimitOptions> rateLimitOptions,
@@ -27,7 +33,10 @@ public class OrchestratorService : IOrchestrator
     {
         _scrapers = scrapers;
         _appliers = appliers;
-        _repository = repository;
+        _jobRepository = jobRepository;
+        _applicationRepository = applicationRepository;
+        _userRepository = userRepository;
+        _searchCriteriaRepository = searchCriteriaRepository;
         _cvTailoring = cvTailoring;
         _agentOptions = agentOptions;
         _rateLimitOptions = rateLimitOptions;
@@ -42,67 +51,95 @@ public class OrchestratorService : IOrchestrator
         _logger.LogInformation("Starting orchestrator. DryRun={DryRun}, Platforms={Platforms}",
             options.DryRun, string.Join(", ", enabledPlatforms));
 
-        // Phase 1: Scrape
-        var activeScrapers = _scrapers.Where(s => enabledPlatforms.Contains(s.Platform));
-        foreach (var scraper in activeScrapers)
+        // TODO: JRC-002 — User is created by CV parsing (extracts name, email, skills from base_cv.docx)
+        var users = await _userRepository.GetAllAsync(ct);
+        var user = users.FirstOrDefault();
+
+        if (user is null)
         {
-            ct.ThrowIfCancellationRequested();
-            _logger.LogInformation("Scraping {Platform}...", scraper.Platform);
+            _logger.LogError("No user found in database. Run CV parsing first (JRC-002).");
+            return;
+        }
 
-            try
+        // TODO: JRC-002/JRC-004 — SearchCriteria created from CV parsing (preferred roles + locations)
+        var activeCriteria = await _searchCriteriaRepository.GetActiveAsync(ct);
+
+        if (activeCriteria.Count == 0)
+        {
+            _logger.LogError("No active search criteria found. Run CV parsing first (JRC-002).");
+            return;
+        }
+
+        _logger.LogInformation("User: {FirstName} {LastName}, Active criteria: {Count}",
+            user.FirstName, user.LastName, activeCriteria.Count);
+
+        // Phase 1: Scrape — iterate all active criteria
+        foreach (var criteria in activeCriteria)
+        {
+            _logger.LogInformation("Searching: \"{Keywords}\" in \"{Location}\"",
+                criteria.Keywords, criteria.Location);
+
+            // Use per-criteria platforms if specified, otherwise fall back to global config
+            var platforms = criteria.Platforms.Count > 0
+                ? _scrapers.Where(s => criteria.Platforms.Contains(s.Platform.ToString()))
+                : _scrapers.Where(s => enabledPlatforms.Contains(s.Platform));
+
+            foreach (var scraper in platforms)
             {
-                var jobs = await scraper.ScrapeAsync(ct);
-                var newCount = 0;
+                ct.ThrowIfCancellationRequested();
+                _logger.LogInformation("Scraping {Platform} for \"{Keywords}\"...",
+                    scraper.Platform, criteria.Keywords);
 
-                foreach (var job in jobs)
+                try
                 {
-                    if (await _repository.ExistsByUrlAsync(job.Url, ct))
-                        continue;
+                    var jobs = await scraper.ScrapeAsync(criteria.Keywords, criteria.Location, ct);
+                    var newCount = 0;
 
-                    await _repository.AddAsync(job, ct);
-                    newCount++;
+                    foreach (var job in jobs)
+                    {
+                        if (await _jobRepository.ExistsByUrlAsync(job.Url, ct))
+                            continue;
+
+                        job.SearchCriteriaId = criteria.Id;
+                        await _jobRepository.AddAsync(job, ct);
+
+                        await _applicationRepository.CreateForJobAsync(job.Id, user.Id, ct);
+                        newCount++;
+                    }
+
+                    _logger.LogInformation("Scraped {Total} jobs from {Platform}, {New} new",
+                        jobs.Count, scraper.Platform, newCount);
                 }
-
-                _logger.LogInformation("Scraped {Total} jobs from {Platform}, {New} new",
-                    jobs.Count, scraper.Platform, newCount);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error scraping {Platform}", scraper.Platform);
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error scraping {Platform}", scraper.Platform);
+                }
             }
         }
 
         // Phase 2: Tailor CVs
-        var foundJobs = await _repository.GetByStatusAsync(JobStatus.Found, ct);
-        _logger.LogInformation("Found {Count} jobs needing CV tailoring", foundJobs.Count);
+        // TODO: JRC-003 — score jobs against user skill profile before tailoring
+        var foundApps = await _applicationRepository.GetByStatusAsync(ApplicationStatus.Found, ct);
+        _logger.LogInformation("Found {Count} applications needing CV tailoring", foundApps.Count);
 
-        foreach (var job in foundJobs)
+        foreach (var app in foundApps)
         {
             ct.ThrowIfCancellationRequested();
 
             try
             {
-                var tailoredPath = await _cvTailoring.TailorAsync(job, options.BaseCvPath, ct);
-                if (tailoredPath != null)
-                {
-                    job.CvPath = tailoredPath;
-                    job.Status = JobStatus.CvTailored;
-                }
-                else
-                {
-                    job.CvPath = options.BaseCvPath;
-                    job.Status = JobStatus.CvTailored;
-                }
-                await _repository.UpdateAsync(job, ct);
+                var tailoredPath = await _cvTailoring.TailorAsync(app.Job, options.BaseCvPath, ct);
+                app.CvPath = tailoredPath ?? options.BaseCvPath;
+                await _applicationRepository.UpdateStatusAsync(app, ApplicationStatus.CvTailored, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error tailoring CV for job {JobId}", job.Id);
+                _logger.LogError(ex, "Error tailoring CV for application {AppId}", app.Id);
             }
         }
 
         // Phase 3: Apply
-        var todayCount = await _repository.GetTodayApplicationCountAsync(ct);
+        var todayCount = await _applicationRepository.GetTodayApplicationCountAsync(user.Id, ct);
         var remaining = options.MaxApplicationsPerDay - todayCount;
 
         if (remaining <= 0)
@@ -111,12 +148,12 @@ public class OrchestratorService : IOrchestrator
             return;
         }
 
-        var jobsToApply = await _repository.GetByStatusAsync(JobStatus.CvTailored, ct);
+        var appsToApply = await _applicationRepository.GetByStatusAsync(ApplicationStatus.CvTailored, ct);
         var activeAppliers = _appliers.Where(a => enabledPlatforms.Contains(a.Platform))
             .ToDictionary(a => a.Platform);
 
         var applied = 0;
-        foreach (var job in jobsToApply)
+        foreach (var app in appsToApply)
         {
             if (applied >= remaining)
             {
@@ -126,36 +163,39 @@ public class OrchestratorService : IOrchestrator
 
             ct.ThrowIfCancellationRequested();
 
-            if (!activeAppliers.TryGetValue(job.Platform, out var applier))
+            if (!activeAppliers.TryGetValue(app.Job.Platform, out var applier))
             {
-                job.Status = JobStatus.ManualFollowUp;
-                await _repository.UpdateAsync(job, ct);
+                await _applicationRepository.UpdateStatusAsync(app, ApplicationStatus.ManualFollowUp, ct);
                 continue;
             }
 
             if (options.DryRun)
             {
                 _logger.LogInformation("[DRY RUN] Would apply to: {Title} at {Company} ({Platform})",
-                    job.Title, job.Company, job.Platform);
+                    app.Job.Title, app.Job.Company, app.Job.Platform);
                 continue;
             }
 
             try
             {
-                var success = await applier.ApplyAsync(job, ct);
-                job.Status = success ? JobStatus.Applied : JobStatus.ApplyFailed;
-                job.AppliedAt = success ? DateTime.UtcNow : null;
-                await _repository.UpdateAsync(job, ct);
-
-                if (success) applied++;
+                var success = await applier.ApplyAsync(app.Job, ct);
+                if (success)
+                {
+                    app.AppliedAt = DateTime.UtcNow;
+                    await _applicationRepository.UpdateStatusAsync(app, ApplicationStatus.Applied, ct);
+                    applied++;
+                }
+                else
+                {
+                    await _applicationRepository.UpdateStatusAsync(app, ApplicationStatus.ManualFollowUp, ct);
+                }
 
                 await Task.Delay(_rateLimitOptions.Value.DelayBetweenApplicationsMs, ct);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error applying to job {JobId}", job.Id);
-                job.Status = JobStatus.ApplyFailed;
-                await _repository.UpdateAsync(job, ct);
+                _logger.LogError(ex, "Error applying to job {JobId}", app.JobId);
+                await _applicationRepository.UpdateStatusAsync(app, ApplicationStatus.ManualFollowUp, ct);
             }
         }
 

@@ -10,6 +10,6 @@ public class AgentOptions
     public int MaxApplicationsPerDay { get; set; } = 50;
     public List<Platform> EnabledPlatforms { get; set; } = new() { Platform.Dou, Platform.Indeed };
     public string BaseCvPath { get; set; } = "cv/base_cv.docx";
+    public List<string> TargetVacancies { get; set; } = new() { ".NET Developer" };
     public string TailoredCvOutputDir { get; set; } = "cv/tailored";
-    public string DatabasePath { get; set; } = "storage/jobs.db";
 }
