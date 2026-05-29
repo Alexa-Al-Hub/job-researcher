@@ -14,27 +14,23 @@ public class DouScraper : IScraper
     public Platform Platform => Platform.Dou;
 
     private readonly PlaywrightBrowserFactory _browserFactory;
-    private readonly IOptions<SearchOptions> _searchOptions;
     private readonly IOptions<RateLimitOptions> _rateLimitOptions;
     private readonly ILogger<DouScraper> _logger;
 
     public DouScraper(
         PlaywrightBrowserFactory browserFactory,
-        IOptions<SearchOptions> searchOptions,
         IOptions<RateLimitOptions> rateLimitOptions,
         ILogger<DouScraper> logger)
     {
         _browserFactory = browserFactory;
-        _searchOptions = searchOptions;
         _rateLimitOptions = rateLimitOptions;
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<Job>> ScrapeAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
     {
         var jobs = new List<Job>();
-        var search = _searchOptions.Value;
-        var keyword = Uri.EscapeDataString(search.Keywords);
+        var keyword = Uri.EscapeDataString(keywords);
         var url = $"https://jobs.dou.ua/vacancies/?search={keyword}";
 
         _logger.LogInformation("DOU scraping URL: {Url}", url);
@@ -87,8 +83,7 @@ public class DouScraper : IScraper
                     Title = title,
                     Company = company,
                     Url = href,
-                    Salary = salary,
-                    Status = JobStatus.Found
+                    Salary = salary
                 });
             }
         }

@@ -11,8 +11,10 @@ public class Job
     public string Url { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Salary { get; set; }
-    public JobStatus Status { get; set; } = JobStatus.Found;
-    public string? CvPath { get; set; }
-    public DateTime? AppliedAt { get; set; }
+    public int? SearchCriteriaId { get; set; }
+    public SearchCriteria? SearchCriteria { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public ICollection<Application> Applications { get; set; } = new List<Application>();
+    public ICollection<JobSkill> JobSkills { get; set; } = new List<JobSkill>();
 }

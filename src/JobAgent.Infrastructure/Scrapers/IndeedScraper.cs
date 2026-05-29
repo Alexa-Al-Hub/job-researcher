@@ -14,29 +14,25 @@ public class IndeedScraper : IScraper
     public Platform Platform => Platform.Indeed;
 
     private readonly PlaywrightBrowserFactory _browserFactory;
-    private readonly IOptions<SearchOptions> _searchOptions;
     private readonly IOptions<RateLimitOptions> _rateLimitOptions;
     private readonly ILogger<IndeedScraper> _logger;
 
     public IndeedScraper(
         PlaywrightBrowserFactory browserFactory,
-        IOptions<SearchOptions> searchOptions,
         IOptions<RateLimitOptions> rateLimitOptions,
         ILogger<IndeedScraper> logger)
     {
         _browserFactory = browserFactory;
-        _searchOptions = searchOptions;
         _rateLimitOptions = rateLimitOptions;
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<Job>> ScrapeAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
     {
         var jobs = new List<Job>();
-        var search = _searchOptions.Value;
-        var keyword = Uri.EscapeDataString(search.Keywords);
-        var location = Uri.EscapeDataString(search.Location);
-        var url = $"https://www.indeed.com/jobs?q={keyword}&l={location}";
+        var keyword = Uri.EscapeDataString(keywords);
+        var loc = Uri.EscapeDataString(location);
+        var url = $"https://www.indeed.com/jobs?q={keyword}&l={loc}";
 
         _logger.LogInformation("Indeed scraping URL: {Url}", url);
 
@@ -74,8 +70,7 @@ public class IndeedScraper : IScraper
                     Title = title,
                     Company = company,
                     Url = href,
-                    Salary = salary,
-                    Status = JobStatus.Found
+                    Salary = salary
                 });
             }
         }

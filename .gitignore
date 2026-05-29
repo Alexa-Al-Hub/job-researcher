@@ -14,7 +14,7 @@ obj/
 logs/
 
 ## Storage
-storage/*.db
+**/storage/*.db
 
 ## CV folder
 cv/

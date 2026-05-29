@@ -1,6 +1,5 @@
 using JobAgent.Application.Interfaces;
 using JobAgent.Domain.Entities;
-using JobAgent.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobAgent.Infrastructure.Persistence;
@@ -31,15 +30,8 @@ public class JobRepository : IJobRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Job>> GetByStatusAsync(JobStatus status, CancellationToken ct = default)
+    public async Task<Job?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        return await _db.Jobs.Where(j => j.Status == status).ToListAsync(ct);
-    }
-
-    public async Task<int> GetTodayApplicationCountAsync(CancellationToken ct = default)
-    {
-        var today = DateTime.UtcNow.Date;
-        return await _db.Jobs.CountAsync(j =>
-            j.Status == JobStatus.Applied && j.AppliedAt != null && j.AppliedAt.Value.Date == today, ct);
+        return await _db.Jobs.FirstOrDefaultAsync(j => j.Id == id, ct);
     }
 }
