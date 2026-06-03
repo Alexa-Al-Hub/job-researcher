@@ -27,6 +27,7 @@ public class DouScraper : IScraper
         _logger = logger;
     }
 
+    // TODO: JRC-007 — extract abstract base class with shared browser/pagination logic for all scrapers
     public async Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
     {
         var jobs = new List<Job>();

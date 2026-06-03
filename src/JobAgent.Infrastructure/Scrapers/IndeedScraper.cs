@@ -27,6 +27,7 @@ public class IndeedScraper : IScraper
         _logger = logger;
     }
 
+    // TODO: JRC-007 — apply same base class refactoring as DouScraper
     public async Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
     {
         var jobs = new List<Job>();

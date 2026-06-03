@@ -2,7 +2,9 @@ using JobAgent.Application.Interfaces;
 using JobAgent.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobAgent.Infrastructure.Persistence;
+using JobAgent.Persistence.Context;
+
+namespace JobAgent.Persistence.Repositories;
 
 public class UserRepository : IUserRepository
 {
@@ -31,6 +33,12 @@ public class UserRepository : IUserRepository
     public async Task AddAsync(User user, CancellationToken ct = default)
     {
         _db.Users.Add(user);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateAsync(User user, CancellationToken ct = default)
+    {
+        _db.Users.Update(user);
         await _db.SaveChangesAsync(ct);
     }
 }

@@ -3,7 +3,7 @@ using JobAgent.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
-namespace JobAgent.Infrastructure.Persistence;
+namespace JobAgent.Persistence.Context;
 
 public class AppDbContext : DbContext
 {
@@ -63,6 +63,8 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.HasIndex(e => e.Name).IsUnique();
+            entity.Property(e => e.Category).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Source).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<UserSkill>(entity =>
