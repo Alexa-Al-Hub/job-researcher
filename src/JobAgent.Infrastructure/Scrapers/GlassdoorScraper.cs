@@ -79,14 +79,7 @@ public class GlassdoorScraper : IScraper
                 if (!href.StartsWith("http"))
                     href = "https://www.glassdoor.com" + href;
 
-                jobs.Add(new CreateJobRequest
-                {
-                    Platform = Platform.Glassdoor,
-                    Title = title,
-                    Company = company,
-                    Url = href,
-                    Salary = salary
-                });
+                jobs.Add(new CreateJobRequest(Platform.Glassdoor, title, company, href, Salary: salary));
             }
 
             // Try next pages (up to 3)
@@ -123,14 +116,7 @@ public class GlassdoorScraper : IScraper
                     if (!href.StartsWith("http"))
                         href = "https://www.glassdoor.com" + href;
 
-                    jobs.Add(new CreateJobRequest
-                    {
-                        Platform = Platform.Glassdoor,
-                        Title = title,
-                        Company = company,
-                        Url = href,
-                        Salary = salary
-                    });
+                    jobs.Add(new CreateJobRequest(Platform.Glassdoor, title, company, href, Salary: salary));
                 }
             }
         }

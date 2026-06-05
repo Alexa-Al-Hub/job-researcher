@@ -78,14 +78,7 @@ public class DouScraper : IScraper
                 if (string.IsNullOrEmpty(href))
                     continue;
 
-                jobs.Add(new CreateJobRequest
-                {
-                    Platform = Platform.Dou,
-                    Title = title,
-                    Company = company,
-                    Url = href,
-                    Salary = salary
-                });
+                jobs.Add(new CreateJobRequest(Platform.Dou, title, company, href, Salary: salary));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

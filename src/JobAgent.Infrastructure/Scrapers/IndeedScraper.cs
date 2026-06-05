@@ -65,14 +65,7 @@ public class IndeedScraper : IScraper
                 if (!href.StartsWith("http"))
                     href = "https://www.indeed.com" + href;
 
-                jobs.Add(new CreateJobRequest
-                {
-                    Platform = Platform.Indeed,
-                    Title = title,
-                    Company = company,
-                    Url = href,
-                    Salary = salary
-                });
+                jobs.Add(new CreateJobRequest(Platform.Indeed, title, company, href, Salary: salary));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

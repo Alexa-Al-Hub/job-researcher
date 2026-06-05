@@ -89,13 +89,7 @@ public class LinkedInScraper : IScraper
                 if (!href.StartsWith("http"))
                     href = "https://www.linkedin.com" + href;
 
-                jobs.Add(new CreateJobRequest
-                {
-                    Platform = Platform.LinkedIn,
-                    Title = title,
-                    Company = company,
-                    Url = href
-                });
+                jobs.Add(new CreateJobRequest(Platform.LinkedIn, title, company, href));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
