@@ -30,11 +30,11 @@ public class TailorService : ITailorService
     public async Task TailorAsync(User user, CancellationToken ct = default)
     {
         var baseCvPath = _agentOptions.Value.BaseCvPath;
-        var foundApps = (await _applicationRepository.GetByStatusAsync(ApplicationStatus.Found, ct))
+        var scoredApps = (await _applicationRepository.GetByStatusAsync(ApplicationStatus.Scored, ct))
             .Where(a => a.UserId == user.Id).ToList();
-        _logger.LogInformation("Found {Count} applications needing CV tailoring", foundApps.Count);
+        _logger.LogInformation("Found {Count} scored applications needing CV tailoring", scoredApps.Count);
 
-        foreach (var app in foundApps)
+        foreach (var app in scoredApps)
         {
             ct.ThrowIfCancellationRequested();
 

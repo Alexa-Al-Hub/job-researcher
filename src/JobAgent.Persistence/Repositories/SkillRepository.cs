@@ -42,4 +42,11 @@ public class SkillRepository : ISkillRepository
     {
         return await _db.Skills.Where(s => s.Source == source).ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<Skill>> GetByUserIdAsync(int userId, CancellationToken ct = default)
+    {
+        return await _db.Skills
+            .Where(s => s.UserSkills.Any(us => us.UserId == userId))
+            .ToListAsync(ct);
+    }
 }

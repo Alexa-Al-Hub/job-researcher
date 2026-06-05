@@ -32,6 +32,7 @@ try
     builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
     builder.Services.Configure<CredentialOptions>(builder.Configuration.GetSection(CredentialOptions.SectionName));
     builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
+    builder.Services.Configure<ScoringOptions>(builder.Configuration.GetSection(ScoringOptions.SectionName));
 
     // AutoMapper
     builder.Services.AddAutoMapper(typeof(JobProfile).Assembly);
@@ -45,6 +46,7 @@ try
     // Application services
     builder.Services.AddScoped<ICvSyncService, CvSyncService>();
     builder.Services.AddScoped<IScrapeService, ScrapeService>();
+    builder.Services.AddScoped<IScoringService, ScoringService>();
     builder.Services.AddScoped<ITailorService, TailorService>();
     builder.Services.AddScoped<IApplyService, ApplyService>();
     builder.Services.AddScoped<IOrchestrator, OrchestratorService>();

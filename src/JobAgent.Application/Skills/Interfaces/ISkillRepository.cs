@@ -10,4 +10,5 @@ public interface ISkillRepository
     Task AddRangeAsync(IEnumerable<Skill> skills, CancellationToken ct = default);
     Task RemoveRangeAsync(IEnumerable<Skill> skills, CancellationToken ct = default);
     Task<List<Skill>> GetBySourceAsync(SkillSource source, CancellationToken ct = default);
+    Task<IReadOnlyList<Skill>> GetByUserIdAsync(int userId, CancellationToken ct = default);
 }
