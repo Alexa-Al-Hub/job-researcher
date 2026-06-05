@@ -1,6 +1,7 @@
 using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Application.Cv.Interfaces;
 using JobAgent.Application.Jobs.Interfaces;
+using JobAgent.Application.SearchCriteria.Interfaces;
 using JobAgent.Infrastructure.Appliers;
 using JobAgent.Infrastructure.Browser;
 using JobAgent.Infrastructure.CvServices;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ICvTailoringService, ClaudeCvTailoringService>();
         services.AddScoped<ICvParsingService, ClaudeCvParsingService>();
         services.AddScoped<IJobScoringService, ClaudeJobScoringService>();
+        services.AddScoped<ISynonymService, ClaudeSynonymService>();
 
         return services;
     }

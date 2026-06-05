@@ -1,6 +1,7 @@
 using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Application.Common;
 using JobAgent.Application.Jobs.Interfaces;
+using JobAgent.Application.SearchCriteria.Interfaces;
 using JobAgent.Application.Users.Interfaces;
 using JobAgent.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ namespace JobAgent.Application.Orchestration;
 public class OrchestratorService : IOrchestrator
 {
     private readonly ICvSyncService _cvSync;
+    private readonly ISynonymService _synonymService;
     private readonly IScrapeService _scrapeService;
     private readonly IScoringService _scoringService;
     private readonly ITailorService _tailorService;
@@ -20,6 +22,7 @@ public class OrchestratorService : IOrchestrator
 
     public OrchestratorService(
         ICvSyncService cvSync,
+        ISynonymService synonymService,
         IScrapeService scrapeService,
         IScoringService scoringService,
         ITailorService tailorService,
@@ -28,6 +31,7 @@ public class OrchestratorService : IOrchestrator
         ILogger<OrchestratorService> logger)
     {
         _cvSync = cvSync;
+        _synonymService = synonymService;
         _scrapeService = scrapeService;
         _scoringService = scoringService;
         _tailorService = tailorService;
@@ -53,7 +57,10 @@ public class OrchestratorService : IOrchestrator
 
         _logger.LogInformation("User: {FirstName} {LastName}", user.FirstName, user.LastName);
 
-        // Discovery pipeline (Scrape → Tailor) runs in parallel with Apply pipeline
+        // Phase 0.5: Generate search synonyms from target positions
+        await _synonymService.GenerateAndSaveAsync(user, options.TargetVacancies, user.YearsOfExperience, ct);
+
+        // Discovery pipeline (Scrape → Score → Tailor) runs in parallel with Apply pipeline
         var discoveryTask = DiscoverAsync(user, ct);
         var applyTask = _applyService.ApplyAsync(user, ct);
 
