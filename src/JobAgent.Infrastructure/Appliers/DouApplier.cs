@@ -1,4 +1,4 @@
-using JobAgent.Application.Interfaces;
+using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Domain.Entities;
 using JobAgent.Domain.Enums;
 using Microsoft.Extensions.Logging;

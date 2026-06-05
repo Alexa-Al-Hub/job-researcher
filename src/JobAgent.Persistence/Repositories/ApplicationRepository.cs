@@ -1,19 +1,23 @@
-using JobAgent.Application.Interfaces;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using JobAgent.Application.Applications.DTOs;
+using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Domain.Entities;
 using JobAgent.Domain.Enums;
-using Microsoft.EntityFrameworkCore;
-
 using JobAgent.Persistence.Context;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobAgent.Persistence.Repositories;
 
 public class ApplicationRepository : IApplicationRepository
 {
     private readonly AppDbContext _db;
+    private readonly IMapper _mapper;
 
-    public ApplicationRepository(AppDbContext db)
+    public ApplicationRepository(AppDbContext db, IMapper mapper)
     {
         _db = db;
+        _mapper = mapper;
     }
 
     public async Task<Domain.Entities.Application> CreateForJobAsync(int jobId, int userId, CancellationToken ct = default)
@@ -57,6 +61,15 @@ public class ApplicationRepository : IApplicationRepository
         return await _db.Applications
             .Include(a => a.Job)
             .Where(a => a.Status == status)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ApplicationDto>> GetByStatusAsDtoAsync(ApplicationStatus status, CancellationToken ct = default)
+    {
+        return await _db.Applications
+            .Include(a => a.Job)
+            .Where(a => a.Status == status)
+            .ProjectTo<ApplicationDto>(_mapper.ConfigurationProvider)
             .ToListAsync(ct);
     }
 

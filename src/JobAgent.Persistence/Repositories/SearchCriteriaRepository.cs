@@ -1,4 +1,4 @@
-using JobAgent.Application.Interfaces;
+using JobAgent.Application.SearchCriteria.Interfaces;
 using JobAgent.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 

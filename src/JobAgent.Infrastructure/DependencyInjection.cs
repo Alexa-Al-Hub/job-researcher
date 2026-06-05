@@ -1,4 +1,6 @@
-using JobAgent.Application.Interfaces;
+using JobAgent.Application.Applications.Interfaces;
+using JobAgent.Application.Cv.Interfaces;
+using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Infrastructure.Appliers;
 using JobAgent.Infrastructure.Browser;
 using JobAgent.Infrastructure.CvServices;

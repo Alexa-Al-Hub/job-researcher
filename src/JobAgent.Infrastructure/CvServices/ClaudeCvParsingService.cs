@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using JobAgent.Application.Interfaces;
-using JobAgent.Application.Models;
-using JobAgent.Application.Options;
+using JobAgent.Application.Common;
+using JobAgent.Application.Cv.Interfaces;
+using JobAgent.Application.Cv.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
