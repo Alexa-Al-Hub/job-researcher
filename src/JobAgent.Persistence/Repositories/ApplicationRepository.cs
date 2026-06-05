@@ -3,7 +3,9 @@ using JobAgent.Domain.Entities;
 using JobAgent.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobAgent.Infrastructure.Persistence;
+using JobAgent.Persistence.Context;
+
+namespace JobAgent.Persistence.Repositories;
 
 public class ApplicationRepository : IApplicationRepository
 {

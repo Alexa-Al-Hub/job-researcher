@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace JobAgent.Infrastructure.Migrations
+namespace JobAgent.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

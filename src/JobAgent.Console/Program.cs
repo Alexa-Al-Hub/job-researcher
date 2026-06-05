@@ -3,7 +3,8 @@ using JobAgent.Application.Options;
 using JobAgent.Application.Services;
 using JobAgent.Console.Worker;
 using JobAgent.Infrastructure;
-using JobAgent.Infrastructure.Persistence;
+using JobAgent.Persistence;
+using JobAgent.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,7 +27,10 @@ try
     builder.Services.Configure<CredentialOptions>(builder.Configuration.GetSection(CredentialOptions.SectionName));
     builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
 
-    // Infrastructure (DbContext, repos, scrapers, appliers, CV services)
+    // Persistence (DbContext, repositories)
+    builder.Services.AddPersistence(builder.Configuration);
+
+    // Infrastructure (scrapers, appliers, CV services)
     builder.Services.AddInfrastructure(builder.Configuration);
 
     // Application services

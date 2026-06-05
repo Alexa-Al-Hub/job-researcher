@@ -2,7 +2,9 @@ using JobAgent.Application.Interfaces;
 using JobAgent.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace JobAgent.Infrastructure.Persistence;
+using JobAgent.Persistence.Context;
+
+namespace JobAgent.Persistence.Repositories;
 
 public class JobRepository : IJobRepository
 {

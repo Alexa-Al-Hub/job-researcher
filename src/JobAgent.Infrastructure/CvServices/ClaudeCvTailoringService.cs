@@ -73,14 +73,13 @@ public class ClaudeCvTailoringService : ICvTailoringService
 
             var requestBody = JsonSerializer.Serialize(new
             {
-                model = "claude-sonnet-4-20250514",
+                model = "@phr-vertex-ai-us/anthropic.claude-opus-4-7",
                 max_tokens = 4096,
                 messages = new[] { new { role = "user", content = prompt } }
             });
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
-            request.Headers.Add("x-api-key", apiKey);
-            request.Headers.Add("anthropic-version", "2023-06-01");
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.portkey.ai/v1/chat/completions");
+            request.Headers.Add("x-portkey-api-key", apiKey);
             request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
 
             var response = await HttpClient.SendAsync(request, ct);
@@ -88,8 +87,8 @@ public class ClaudeCvTailoringService : ICvTailoringService
 
             var responseJson = await response.Content.ReadAsStringAsync(ct);
             using var doc = JsonDocument.Parse(responseJson);
-            var content = doc.RootElement.GetProperty("content");
-            var tailoredText = content[0].GetProperty("text").GetString() ?? "";
+            var choices = doc.RootElement.GetProperty("choices");
+            var tailoredText = choices[0].GetProperty("message").GetProperty("content").GetString() ?? "";
 
             if (string.IsNullOrWhiteSpace(tailoredText))
             {

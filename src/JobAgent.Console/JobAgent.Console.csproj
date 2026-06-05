@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JobAgent.Infrastructure\JobAgent.Infrastructure.csproj" />
+    <ProjectReference Include="..\JobAgent.Persistence\JobAgent.Persistence.csproj" />
     <ProjectReference Include="..\JobAgent.Application\JobAgent.Application.csproj" />
     <ProjectReference Include="..\JobAgent.Domain\JobAgent.Domain.csproj" />
   </ItemGroup>

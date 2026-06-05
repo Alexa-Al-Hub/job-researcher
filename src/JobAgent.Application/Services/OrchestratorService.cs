@@ -1,5 +1,6 @@
 using JobAgent.Application.Interfaces;
 using JobAgent.Application.Options;
+using JobAgent.Domain.Entities;
 using JobAgent.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,7 +15,9 @@ public class OrchestratorService : IOrchestrator
     private readonly IApplicationRepository _applicationRepository;
     private readonly IUserRepository _userRepository;
     private readonly ISearchCriteriaRepository _searchCriteriaRepository;
+    private readonly ISkillRepository _skillRepository;
     private readonly ICvTailoringService _cvTailoring;
+    private readonly ICvParsingService _cvParsing;
     private readonly IOptions<AgentOptions> _agentOptions;
     private readonly IOptions<RateLimitOptions> _rateLimitOptions;
     private readonly ILogger<OrchestratorService> _logger;
@@ -26,7 +29,9 @@ public class OrchestratorService : IOrchestrator
         IApplicationRepository applicationRepository,
         IUserRepository userRepository,
         ISearchCriteriaRepository searchCriteriaRepository,
+        ISkillRepository skillRepository,
         ICvTailoringService cvTailoring,
+        ICvParsingService cvParsing,
         IOptions<AgentOptions> agentOptions,
         IOptions<RateLimitOptions> rateLimitOptions,
         ILogger<OrchestratorService> logger)
@@ -37,12 +42,15 @@ public class OrchestratorService : IOrchestrator
         _applicationRepository = applicationRepository;
         _userRepository = userRepository;
         _searchCriteriaRepository = searchCriteriaRepository;
+        _skillRepository = skillRepository;
         _cvTailoring = cvTailoring;
+        _cvParsing = cvParsing;
         _agentOptions = agentOptions;
         _rateLimitOptions = rateLimitOptions;
         _logger = logger;
     }
 
+    // TODO: JRC-008 — split into separate services (ScrapeService, CvTailoringService, ApplyService) to respect SRP
     public async Task RunAsync(CancellationToken ct = default)
     {
         var options = _agentOptions.Value;
@@ -51,17 +59,16 @@ public class OrchestratorService : IOrchestrator
         _logger.LogInformation("Starting orchestrator. DryRun={DryRun}, Platforms={Platforms}",
             options.DryRun, string.Join(", ", enabledPlatforms));
 
-        // TODO: JRC-002 — User is created by CV parsing (extracts name, email, skills from base_cv.docx)
-        var users = await _userRepository.GetAllAsync(ct);
-        var user = users.FirstOrDefault();
+        // Phase 0: Parse CV → create/update User and Skills
+        var user = await ParseCvAndSyncUserAsync(options.BaseCvPath, ct);
 
         if (user is null)
         {
-            _logger.LogError("No user found in database. Run CV parsing first (JRC-002).");
+            _logger.LogError("No user available. CV parsing failed and no existing user found.");
             return;
         }
 
-        // TODO: JRC-002/JRC-004 — SearchCriteria created from CV parsing (preferred roles + locations)
+        // TODO: JRC-004 — SearchCriteria created from CV parsing (preferred roles + locations)
         var activeCriteria = await _searchCriteriaRepository.GetActiveAsync(ct);
 
         if (activeCriteria.Count == 0)
@@ -201,5 +208,77 @@ public class OrchestratorService : IOrchestrator
 
         _logger.LogInformation("Orchestrator complete. Applied to {Count} jobs today (total: {Total})",
             applied, todayCount + applied);
+    }
+
+    private async Task<User?> ParseCvAndSyncUserAsync(string baseCvPath, CancellationToken ct)
+    {
+        var profile = await _cvParsing.ParseAsync(baseCvPath, ct);
+
+        if (profile is null)
+        {
+            _logger.LogWarning("CV parsing returned no result. Falling back to existing user.");
+            var users = await _userRepository.GetAllAsync(ct);
+            return users.FirstOrDefault();
+        }
+
+        // Upsert user
+        var email = profile.Email ?? $"{profile.FirstName}.{profile.LastName}@unknown.local".ToLowerInvariant();
+        var user = await _userRepository.GetByEmailAsync(email, ct);
+
+        if (user is null)
+        {
+            user = new User
+            {
+                FirstName = profile.FirstName,
+                LastName = profile.LastName,
+                Email = email
+            };
+            await _userRepository.AddAsync(user, ct);
+            _logger.LogInformation("Created user: {FirstName} {LastName} ({Email})",
+                user.FirstName, user.LastName, user.Email);
+        }
+        else
+        {
+            user.FirstName = profile.FirstName;
+            user.LastName = profile.LastName;
+            await _userRepository.UpdateAsync(user, ct);
+            _logger.LogInformation("Updated user: {FirstName} {LastName}", user.FirstName, user.LastName);
+        }
+
+        // Sync skills: remove old CvParsed skills, add new ones
+        var oldSkills = await _skillRepository.GetBySourceAsync(SkillSource.CvParsed, ct);
+        if (oldSkills.Count > 0)
+        {
+            await _skillRepository.RemoveRangeAsync(oldSkills, ct);
+            _logger.LogInformation("Removed {Count} old CvParsed skills", oldSkills.Count);
+        }
+
+        var newSkills = profile.Skills.Select(s => new Skill
+        {
+            Name = s.Name,
+            Category = Enum.TryParse<SkillCategory>(s.Category, ignoreCase: true, out var cat)
+                ? cat
+                : SkillCategory.Other,
+            Source = SkillSource.CvParsed
+        }).ToList();
+
+        if (newSkills.Count > 0)
+        {
+            await _skillRepository.AddRangeAsync(newSkills, ct);
+
+            // Link skills to user via UserSkills
+            var userSkills = newSkills.Select(s => new UserSkill
+            {
+                UserId = user.Id,
+                SkillId = s.Id
+            });
+
+            user.UserSkills = userSkills.ToList();
+            await _userRepository.UpdateAsync(user, ct);
+
+            _logger.LogInformation("Added {Count} skills from CV parsing", newSkills.Count);
+        }
+
+        return user;
     }
 }
