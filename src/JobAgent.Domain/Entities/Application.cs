@@ -10,6 +10,8 @@ public class Application
     public int UserId { get; set; }
     public User User { get; set; } = null!;
     public ApplicationStatus Status { get; set; } = ApplicationStatus.Found;
+    public int? Score { get; set; }
+    public string? ScoreReason { get; set; }
     public string? CvPath { get; set; }
     public string? Notes { get; set; }
     public DateTime? AppliedAt { get; set; }

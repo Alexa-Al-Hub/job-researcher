@@ -3,6 +3,8 @@ namespace JobAgent.Domain.Enums;
 public enum ApplicationStatus
 {
     Found,
+    Scored,
+    Skipped,
     CvTailored,
     Applied,
     InterviewInvite,

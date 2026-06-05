@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddSingleton<ICvDocxService, DocxCvService>();
         services.AddScoped<ICvTailoringService, ClaudeCvTailoringService>();
         services.AddScoped<ICvParsingService, ClaudeCvParsingService>();
+        services.AddScoped<IJobScoringService, ClaudeJobScoringService>();
 
         return services;
     }

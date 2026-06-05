@@ -12,6 +12,7 @@ public class OrchestratorService : IOrchestrator
 {
     private readonly ICvSyncService _cvSync;
     private readonly IScrapeService _scrapeService;
+    private readonly IScoringService _scoringService;
     private readonly ITailorService _tailorService;
     private readonly IApplyService _applyService;
     private readonly IOptions<AgentOptions> _agentOptions;
@@ -20,6 +21,7 @@ public class OrchestratorService : IOrchestrator
     public OrchestratorService(
         ICvSyncService cvSync,
         IScrapeService scrapeService,
+        IScoringService scoringService,
         ITailorService tailorService,
         IApplyService applyService,
         IOptions<AgentOptions> agentOptions,
@@ -27,6 +29,7 @@ public class OrchestratorService : IOrchestrator
     {
         _cvSync = cvSync;
         _scrapeService = scrapeService;
+        _scoringService = scoringService;
         _tailorService = tailorService;
         _applyService = applyService;
         _agentOptions = agentOptions;
@@ -62,6 +65,7 @@ public class OrchestratorService : IOrchestrator
     private async Task DiscoverAsync(User user, CancellationToken ct)
     {
         await _scrapeService.ScrapeAsync(user, ct);
+        await _scoringService.ScoreAsync(user, ct);
         await _tailorService.TailorAsync(user, ct);
     }
 }
