@@ -1,6 +1,7 @@
 using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Application.Common;
 using JobAgent.Application.Cv.Interfaces;
+using JobAgent.Domain.Entities;
 using JobAgent.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,10 +27,11 @@ public class TailorService : ITailorService
         _logger = logger;
     }
 
-    public async Task TailorAsync(CancellationToken ct = default)
+    public async Task TailorAsync(User user, CancellationToken ct = default)
     {
         var baseCvPath = _agentOptions.Value.BaseCvPath;
-        var foundApps = await _applicationRepository.GetByStatusAsync(ApplicationStatus.Found, ct);
+        var foundApps = (await _applicationRepository.GetByStatusAsync(ApplicationStatus.Found, ct))
+            .Where(a => a.UserId == user.Id).ToList();
         _logger.LogInformation("Found {Count} applications needing CV tailoring", foundApps.Count);
 
         foreach (var app in foundApps)

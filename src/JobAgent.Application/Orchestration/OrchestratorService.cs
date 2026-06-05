@@ -53,7 +53,7 @@ public class OrchestratorService : IOrchestrator
         await _scrapeService.ScrapeAsync(user, ct);
 
         // Phase 2: Tailor CVs
-        await _tailorService.TailorAsync(ct);
+        await _tailorService.TailorAsync(user, ct);
 
         // Phase 3: Apply
         await _applyService.ApplyAsync(user, ct);
