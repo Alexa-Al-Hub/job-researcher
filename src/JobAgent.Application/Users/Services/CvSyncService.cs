@@ -46,7 +46,8 @@ public class CvSyncService : ICvSyncService
             {
                 FirstName = profile.FirstName,
                 LastName = profile.LastName,
-                Email = email
+                Email = email,
+                YearsOfExperience = profile.YearsOfExperience
             };
             await _userRepository.AddAsync(user, ct);
             _logger.LogInformation("Created user: {FirstName} {LastName} ({Email})",
@@ -56,6 +57,7 @@ public class CvSyncService : ICvSyncService
         {
             user.FirstName = profile.FirstName;
             user.LastName = profile.LastName;
+            user.YearsOfExperience = profile.YearsOfExperience;
             await _userRepository.UpdateAsync(user, ct);
             _logger.LogInformation("Updated user: {FirstName} {LastName}", user.FirstName, user.LastName);
         }

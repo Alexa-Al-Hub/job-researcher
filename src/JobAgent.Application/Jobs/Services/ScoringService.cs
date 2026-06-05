@@ -53,7 +53,7 @@ public class ScoringService : IScoringService
 
             try
             {
-                var (score, reason) = await _jobScoring.ScoreAsync(app.Job, userSkills, ct);
+                var (score, reason) = await _jobScoring.ScoreAsync(app.Job, userSkills, user.YearsOfExperience, ct);
                 app.Score = score;
                 app.ScoreReason = reason;
 

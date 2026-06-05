@@ -6,6 +6,7 @@ public class User
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public int? YearsOfExperience { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<SearchCriteria> SearchCriteria { get; set; } = new List<SearchCriteria>();

@@ -22,7 +22,7 @@ public class ClaudeJobScoringService : IJobScoringService
         _logger = logger;
     }
 
-    public async Task<(int Score, string Reason)> ScoreAsync(Job job, IReadOnlyList<Skill> userSkills, CancellationToken ct = default)
+    public async Task<(int Score, string Reason)> ScoreAsync(Job job, IReadOnlyList<Skill> userSkills, int? yearsOfExperience = null, CancellationToken ct = default)
     {
         var apiKey = _credentialOptions.Value.AnthropicApiKey;
         if (string.IsNullOrEmpty(apiKey))
@@ -32,6 +32,9 @@ public class ClaudeJobScoringService : IJobScoringService
         }
 
         var skillList = string.Join(", ", userSkills.Select(s => s.Name));
+        var experienceInfo = yearsOfExperience.HasValue
+            ? $"\n\nCANDIDATE EXPERIENCE: {yearsOfExperience} years"
+            : "";
         var jobDescription = !string.IsNullOrWhiteSpace(job.Description)
             ? job.Description
             : $"Title: {job.Title}, Company: {job.Company}";
@@ -45,14 +48,16 @@ public class ClaudeJobScoringService : IJobScoringService
             }
 
             Rules:
-            - 90-100: Perfect match, all key skills present
-            - 70-89: Strong match, most skills present
-            - 50-69: Partial match, some relevant skills
-            - 30-49: Weak match, few relevant skills
+            - 90-100: Perfect match, all key skills present, experience level matches
+            - 70-89: Strong match, most skills present, experience within range
+            - 50-69: Partial match, some relevant skills or slight experience mismatch
+            - 30-49: Weak match, few relevant skills or significant experience gap
             - 0-29: Poor match, almost no overlap
+            - If the job requires significantly more experience than the candidate has, lower the score
+            - If the job level (Senior/Lead) doesn't match the candidate's experience, account for that
 
             CANDIDATE SKILLS:
-            {{skillList}}
+            {{skillList}}{{experienceInfo}}
 
             JOB POSTING:
             {{jobDescription}}
