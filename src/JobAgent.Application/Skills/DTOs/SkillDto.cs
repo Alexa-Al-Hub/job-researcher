@@ -2,10 +2,10 @@ using JobAgent.Domain.Enums;
 
 namespace JobAgent.Application.Skills.DTOs;
 
-public class SkillDto
+public record SkillDto
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public SkillCategory Category { get; set; }
-    public SkillSource Source { get; set; }
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public SkillCategory Category { get; init; }
+    public SkillSource Source { get; init; }
 }

@@ -2,15 +2,15 @@ using JobAgent.Domain.Enums;
 
 namespace JobAgent.Application.Jobs.DTOs;
 
-public class JobDto
+public record JobDto
 {
-    public int Id { get; set; }
-    public Platform Platform { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Company { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string? Salary { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public List<string> Skills { get; set; } = new();
+    public int Id { get; init; }
+    public Platform Platform { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Company { get; init; } = string.Empty;
+    public string Url { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public string? Salary { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public List<string> Skills { get; init; } = new();
 }

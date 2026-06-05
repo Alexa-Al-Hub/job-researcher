@@ -2,14 +2,14 @@ using JobAgent.Domain.Enums;
 
 namespace JobAgent.Application.Applications.DTOs;
 
-public class ApplicationDto
+public record ApplicationDto
 {
-    public int Id { get; set; }
-    public int JobId { get; set; }
-    public string JobTitle { get; set; } = string.Empty;
-    public int UserId { get; set; }
-    public ApplicationStatus Status { get; set; }
-    public string? CvPath { get; set; }
-    public DateTime? AppliedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public int Id { get; init; }
+    public int JobId { get; init; }
+    public string JobTitle { get; init; } = string.Empty;
+    public int UserId { get; init; }
+    public ApplicationStatus Status { get; init; }
+    public string? CvPath { get; init; }
+    public DateTime? AppliedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
 }
