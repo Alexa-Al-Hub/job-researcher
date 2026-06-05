@@ -1,80 +1,50 @@
 using JobAgent.Application.Common;
 using JobAgent.Application.Jobs.DTOs;
-using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Domain.Enums;
+using JobAgent.Infrastructure.Abstractions;
 using JobAgent.Infrastructure.Browser;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
+using static JobAgent.Infrastructure.Constants.ScraperConstants;
 
 namespace JobAgent.Infrastructure.Scrapers;
 
-public class IndeedScraper : IScraper
+public class IndeedScraper : BaseScraper
 {
-    public Platform Platform => Platform.Indeed;
-
-    private readonly PlaywrightBrowserFactory _browserFactory;
-    private readonly IOptions<RateLimitOptions> _rateLimitOptions;
-    private readonly ILogger<IndeedScraper> _logger;
+    public override Platform Platform => Platform.Indeed;
 
     public IndeedScraper(
         PlaywrightBrowserFactory browserFactory,
         IOptions<RateLimitOptions> rateLimitOptions,
         ILogger<IndeedScraper> logger)
-    {
-        _browserFactory = browserFactory;
-        _rateLimitOptions = rateLimitOptions;
-        _logger = logger;
-    }
+        : base(browserFactory, rateLimitOptions, logger) { }
 
-    // TODO: JRC-007 — apply same base class refactoring as DouScraper
-    public async Task<IReadOnlyList<CreateJobRequest>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
+    protected override async Task<IReadOnlyList<CreateJobRequest>> ParseJobsAsync(
+        IPage page, string keywords, string location, CancellationToken ct)
     {
+        var url = $"{IndeedBaseUrl}?q={Uri.EscapeDataString(keywords)}&l={Uri.EscapeDataString(location)}";
+        Logger.LogInformation("Indeed scraping URL: {Url}", url);
+
+        await page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await Task.Delay(RateLimit.MinDelayBetweenRequestsMs, ct);
+
+        var jobCards = await page.QuerySelectorAllAsync(IndeedCardSelector);
+        Logger.LogInformation("Found {Count} job cards on Indeed", jobCards.Count);
+
         var jobs = new List<CreateJobRequest>();
-        var keyword = Uri.EscapeDataString(keywords);
-        var loc = Uri.EscapeDataString(location);
-        var url = $"https://www.indeed.com/jobs?q={keyword}&l={loc}";
-
-        _logger.LogInformation("Indeed scraping URL: {Url}", url);
-
-        var page = await _browserFactory.NewPageAsync();
-        try
+        foreach (var card in jobCards)
         {
-            await page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-            await Task.Delay(_rateLimitOptions.Value.MinDelayBetweenRequestsMs, ct);
+            ct.ThrowIfCancellationRequested();
+            var (title, href, company, salary) = await ExtractCardAsync(card, IndeedTitleSelector, IndeedCompanySelector, IndeedSalarySelector);
 
-            var jobCards = await page.QuerySelectorAllAsync(".job_seen_beacon, .jobsearch-ResultsList > li");
-            _logger.LogInformation("Found {Count} job cards on Indeed", jobCards.Count);
+            if (string.IsNullOrEmpty(href))
+                continue;
 
-            foreach (var card in jobCards)
-            {
-                ct.ThrowIfCancellationRequested();
+            if (!href.StartsWith("http"))
+                href = IndeedOrigin + href;
 
-                var titleEl = await card.QuerySelectorAsync("h2.jobTitle a, .jobTitle > a");
-                var companyEl = await card.QuerySelectorAsync("[data-testid='company-name'], .companyName");
-                var salaryEl = await card.QuerySelectorAsync("[data-testid='attribute_snippet_testid'], .salary-snippet-container");
-
-                var title = titleEl != null ? (await titleEl.InnerTextAsync()).Trim() : "";
-                var href = titleEl != null ? await titleEl.GetAttributeAsync("href") : null;
-                var company = companyEl != null ? (await companyEl.InnerTextAsync()).Trim() : "";
-                var salary = salaryEl != null ? (await salaryEl.InnerTextAsync()).Trim() : null;
-
-                if (string.IsNullOrEmpty(href))
-                    continue;
-
-                if (!href.StartsWith("http"))
-                    href = "https://www.indeed.com" + href;
-
-                jobs.Add(new CreateJobRequest(Platform.Indeed, title, company, href, Salary: salary));
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Error during Indeed scraping (likely anti-bot block)");
-        }
-        finally
-        {
-            await page.CloseAsync();
+            jobs.Add(new CreateJobRequest(Platform.Indeed, title, company, href, Salary: salary));
         }
 
         return jobs;

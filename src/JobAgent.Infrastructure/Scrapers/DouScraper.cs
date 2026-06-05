@@ -1,93 +1,59 @@
 using JobAgent.Application.Common;
 using JobAgent.Application.Jobs.DTOs;
-using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Domain.Enums;
+using JobAgent.Infrastructure.Abstractions;
 using JobAgent.Infrastructure.Browser;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
+using static JobAgent.Infrastructure.Constants.ScraperConstants;
 
 namespace JobAgent.Infrastructure.Scrapers;
 
-public class DouScraper : IScraper
+public class DouScraper : BaseScraper
 {
-    public Platform Platform => Platform.Dou;
-
-    private readonly PlaywrightBrowserFactory _browserFactory;
-    private readonly IOptions<RateLimitOptions> _rateLimitOptions;
-    private readonly ILogger<DouScraper> _logger;
+    public override Platform Platform => Platform.Dou;
 
     public DouScraper(
         PlaywrightBrowserFactory browserFactory,
         IOptions<RateLimitOptions> rateLimitOptions,
         ILogger<DouScraper> logger)
-    {
-        _browserFactory = browserFactory;
-        _rateLimitOptions = rateLimitOptions;
-        _logger = logger;
-    }
+        : base(browserFactory, rateLimitOptions, logger) { }
 
-    // TODO: JRC-007 — extract abstract base class with shared browser/pagination logic for all scrapers
-    public async Task<IReadOnlyList<CreateJobRequest>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
+    protected override async Task<IReadOnlyList<CreateJobRequest>> ParseJobsAsync(
+        IPage page, string keywords, string location, CancellationToken ct)
     {
+        var url = DouBaseUrl + Uri.EscapeDataString(keywords);
+        Logger.LogInformation("DOU scraping URL: {Url}", url);
+
+        await page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+        await page.WaitForSelectorAsync(DouVacancySelector, new PageWaitForSelectorOptions { Timeout = DouWaitTimeout });
+
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            var moreButton = await page.QuerySelectorAsync(DouMoreButtonSelector);
+            if (moreButton == null || !await moreButton.IsVisibleAsync())
+                break;
+
+            await moreButton.ClickAsync();
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await Task.Delay(RateLimit.MinDelayBetweenRequestsMs, ct);
+        }
+
+        var vacancyElements = await page.QuerySelectorAllAsync(DouVacancySelector);
+        Logger.LogInformation("Found {Count} vacancy elements on DOU", vacancyElements.Count);
+
         var jobs = new List<CreateJobRequest>();
-        var keyword = Uri.EscapeDataString(keywords);
-        var url = $"https://jobs.dou.ua/vacancies/?search={keyword}";
-
-        _logger.LogInformation("DOU scraping URL: {Url}", url);
-
-        var page = await _browserFactory.NewPageAsync();
-        try
+        foreach (var el in vacancyElements)
         {
-            await page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
-            await page.WaitForSelectorAsync(".l-vacancy", new PageWaitForSelectorOptions { Timeout = 10000 });
+            ct.ThrowIfCancellationRequested();
+            var (title, href, company, salary) = await ExtractCardAsync(el, DouTitleSelector, DouCompanySelector, DouSalarySelector);
 
-            // Click "More vacancies" button until no more
-            while (true)
-            {
-                ct.ThrowIfCancellationRequested();
-                var moreButton = await page.QuerySelectorAsync(".more-btn a");
-                if (moreButton == null)
-                    break;
+            if (string.IsNullOrEmpty(href))
+                continue;
 
-                var isVisible = await moreButton.IsVisibleAsync();
-                if (!isVisible)
-                    break;
-
-                await moreButton.ClickAsync();
-                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-                await Task.Delay(_rateLimitOptions.Value.MinDelayBetweenRequestsMs, ct);
-            }
-
-            var vacancyElements = await page.QuerySelectorAllAsync(".l-vacancy");
-            _logger.LogInformation("Found {Count} vacancy elements on DOU", vacancyElements.Count);
-
-            foreach (var el in vacancyElements)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                var titleEl = await el.QuerySelectorAsync(".vt");
-                var companyEl = await el.QuerySelectorAsync(".company");
-                var salaryEl = await el.QuerySelectorAsync(".salary");
-
-                var title = titleEl != null ? (await titleEl.InnerTextAsync()).Trim() : "";
-                var href = titleEl != null ? await titleEl.GetAttributeAsync("href") : null;
-                var company = companyEl != null ? (await companyEl.InnerTextAsync()).Trim() : "";
-                var salary = salaryEl != null ? (await salaryEl.InnerTextAsync()).Trim() : null;
-
-                if (string.IsNullOrEmpty(href))
-                    continue;
-
-                jobs.Add(new CreateJobRequest(Platform.Dou, title, company, href, Salary: salary));
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Error during DOU scraping");
-        }
-        finally
-        {
-            await page.CloseAsync();
+            jobs.Add(new CreateJobRequest(Platform.Dou, title, company, href, Salary: salary));
         }
 
         return jobs;
