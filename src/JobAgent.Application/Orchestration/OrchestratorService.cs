@@ -2,6 +2,7 @@ using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Application.Common;
 using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Application.Users.Interfaces;
+using JobAgent.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -49,15 +50,18 @@ public class OrchestratorService : IOrchestrator
 
         _logger.LogInformation("User: {FirstName} {LastName}", user.FirstName, user.LastName);
 
-        // Phase 1: Scrape
-        await _scrapeService.ScrapeAsync(user, ct);
+        // Discovery pipeline (Scrape → Tailor) runs in parallel with Apply pipeline
+        var discoveryTask = DiscoverAsync(user, ct);
+        var applyTask = _applyService.ApplyAsync(user, ct);
 
-        // Phase 2: Tailor CVs
-        await _tailorService.TailorAsync(user, ct);
-
-        // Phase 3: Apply
-        await _applyService.ApplyAsync(user, ct);
+        await Task.WhenAll(discoveryTask, applyTask);
 
         _logger.LogInformation("Orchestrator complete.");
+    }
+
+    private async Task DiscoverAsync(User user, CancellationToken ct)
+    {
+        await _scrapeService.ScrapeAsync(user, ct);
+        await _tailorService.TailorAsync(user, ct);
     }
 }
