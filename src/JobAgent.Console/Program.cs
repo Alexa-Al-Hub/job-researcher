@@ -1,6 +1,12 @@
+using JobAgent.Application.Applications.Interfaces;
+using JobAgent.Application.Applications.Services;
 using JobAgent.Application.Common;
+using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Application.Jobs.Mapping;
+using JobAgent.Application.Jobs.Services;
 using JobAgent.Application.Orchestration;
+using JobAgent.Application.Users.Interfaces;
+using JobAgent.Application.Users.Services;
 using JobAgent.Console.Worker;
 using JobAgent.Infrastructure;
 using JobAgent.Persistence;
@@ -37,6 +43,10 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
 
     // Application services
+    builder.Services.AddScoped<ICvSyncService, CvSyncService>();
+    builder.Services.AddScoped<IScrapeService, ScrapeService>();
+    builder.Services.AddScoped<ITailorService, TailorService>();
+    builder.Services.AddScoped<IApplyService, ApplyService>();
     builder.Services.AddScoped<IOrchestrator, OrchestratorService>();
 
     // Hosted service
