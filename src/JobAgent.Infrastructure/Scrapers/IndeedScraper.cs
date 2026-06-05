@@ -1,6 +1,6 @@
-using JobAgent.Application.Interfaces;
-using JobAgent.Application.Options;
-using JobAgent.Domain.Entities;
+using JobAgent.Application.Common;
+using JobAgent.Application.Jobs.DTOs;
+using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Domain.Enums;
 using JobAgent.Infrastructure.Browser;
 using Microsoft.Extensions.Logging;
@@ -28,9 +28,9 @@ public class IndeedScraper : IScraper
     }
 
     // TODO: JRC-007 — apply same base class refactoring as DouScraper
-    public async Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
+    public async Task<IReadOnlyList<CreateJobRequest>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
     {
-        var jobs = new List<Job>();
+        var jobs = new List<CreateJobRequest>();
         var keyword = Uri.EscapeDataString(keywords);
         var loc = Uri.EscapeDataString(location);
         var url = $"https://www.indeed.com/jobs?q={keyword}&l={loc}";
@@ -65,14 +65,7 @@ public class IndeedScraper : IScraper
                 if (!href.StartsWith("http"))
                     href = "https://www.indeed.com" + href;
 
-                jobs.Add(new Job
-                {
-                    Platform = Platform.Indeed,
-                    Title = title,
-                    Company = company,
-                    Url = href,
-                    Salary = salary
-                });
+                jobs.Add(new CreateJobRequest(Platform.Indeed, title, company, href, Salary: salary));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

@@ -1,6 +1,6 @@
-using JobAgent.Application.Interfaces;
-using JobAgent.Application.Options;
-using JobAgent.Domain.Entities;
+using JobAgent.Application.Common;
+using JobAgent.Application.Jobs.DTOs;
+using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Domain.Enums;
 using JobAgent.Infrastructure.Browser;
 using Microsoft.Extensions.Logging;
@@ -28,9 +28,9 @@ public class DouScraper : IScraper
     }
 
     // TODO: JRC-007 — extract abstract base class with shared browser/pagination logic for all scrapers
-    public async Task<IReadOnlyList<Job>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
+    public async Task<IReadOnlyList<CreateJobRequest>> ScrapeAsync(string keywords, string location, CancellationToken ct = default)
     {
-        var jobs = new List<Job>();
+        var jobs = new List<CreateJobRequest>();
         var keyword = Uri.EscapeDataString(keywords);
         var url = $"https://jobs.dou.ua/vacancies/?search={keyword}";
 
@@ -78,14 +78,7 @@ public class DouScraper : IScraper
                 if (string.IsNullOrEmpty(href))
                     continue;
 
-                jobs.Add(new Job
-                {
-                    Platform = Platform.Dou,
-                    Title = title,
-                    Company = company,
-                    Url = href,
-                    Salary = salary
-                });
+                jobs.Add(new CreateJobRequest(Platform.Dou, title, company, href, Salary: salary));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

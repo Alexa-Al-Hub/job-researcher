@@ -1,4 +1,4 @@
-using JobAgent.Application.Interfaces;
+using JobAgent.Application.Orchestration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

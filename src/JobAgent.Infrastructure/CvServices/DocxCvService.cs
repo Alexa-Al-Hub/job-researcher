@@ -1,7 +1,7 @@
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using JobAgent.Application.Interfaces;
+using JobAgent.Application.Cv.Interfaces;
 
 namespace JobAgent.Infrastructure.CvServices;
 

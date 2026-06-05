@@ -1,6 +1,6 @@
-using JobAgent.Application.Interfaces;
-using JobAgent.Application.Options;
-using JobAgent.Application.Services;
+using JobAgent.Application.Common;
+using JobAgent.Application.Jobs.Mapping;
+using JobAgent.Application.Orchestration;
 using JobAgent.Console.Worker;
 using JobAgent.Infrastructure;
 using JobAgent.Persistence;
@@ -26,6 +26,9 @@ try
     builder.Services.Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName));
     builder.Services.Configure<CredentialOptions>(builder.Configuration.GetSection(CredentialOptions.SectionName));
     builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
+
+    // AutoMapper
+    builder.Services.AddAutoMapper(typeof(JobProfile).Assembly);
 
     // Persistence (DbContext, repositories)
     builder.Services.AddPersistence(builder.Configuration);

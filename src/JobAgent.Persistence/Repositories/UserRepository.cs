@@ -1,4 +1,4 @@
-using JobAgent.Application.Interfaces;
+using JobAgent.Application.Users.Interfaces;
 using JobAgent.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 

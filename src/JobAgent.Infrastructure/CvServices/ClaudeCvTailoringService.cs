@@ -1,8 +1,8 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using JobAgent.Application.Interfaces;
-using JobAgent.Application.Options;
+using JobAgent.Application.Common;
+using JobAgent.Application.Cv.Interfaces;
 using JobAgent.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
