@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<JobSkill> JobSkills => Set<JobSkill>();
     public DbSet<Domain.Entities.Application> Applications => Set<Domain.Entities.Application>();
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistory => Set<ApplicationStatusHistory>();
+    public DbSet<CorrespondenceMessage> Correspondence => Set<CorrespondenceMessage>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -99,6 +100,23 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.Application)
                 .WithMany(a => a.StatusHistory)
                 .HasForeignKey(e => e.ApplicationId);
+        });
+
+        modelBuilder.Entity<CorrespondenceMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Mailbox).HasMaxLength(320);
+            entity.Property(e => e.ExternalMessageId).HasMaxLength(200);
+            entity.Property(e => e.ThreadId).HasMaxLength(200);
+            entity.Property(e => e.FromAddress).HasMaxLength(320);
+            entity.Property(e => e.Subject).HasMaxLength(1000);
+            entity.Property(e => e.Category).HasConversion<string>().HasMaxLength(30);
+            entity.Property(e => e.Direction).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => new { e.Mailbox, e.ExternalMessageId }).IsUnique();
+            entity.HasOne(e => e.Application)
+                .WithMany()
+                .HasForeignKey(e => e.ApplicationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

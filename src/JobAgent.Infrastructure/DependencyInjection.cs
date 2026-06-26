@@ -1,10 +1,12 @@
 using JobAgent.Application.Applications.Interfaces;
+using JobAgent.Application.Correspondence.Interfaces;
 using JobAgent.Application.Cv.Interfaces;
 using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Application.SearchCriteria.Interfaces;
 using JobAgent.Infrastructure.Appliers;
 using JobAgent.Infrastructure.Browser;
 using JobAgent.Infrastructure.CvServices;
+using JobAgent.Infrastructure.Email;
 using JobAgent.Infrastructure.Scrapers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IScraper, GlassdoorScraper>();
 
         // Appliers
+        services.AddScoped<IApplicationFormService, ClaudeApplicationFormService>();
         services.AddScoped<IApplier, DouApplier>();
         services.AddScoped<IApplier, IndeedApplier>();
         services.AddScoped<IApplier, LinkedInApplier>();
@@ -36,6 +39,10 @@ public static class DependencyInjection
         services.AddScoped<ICvParsingService, ClaudeCvParsingService>();
         services.AddScoped<IJobScoringService, ClaudeJobScoringService>();
         services.AddScoped<ISynonymService, ClaudeSynonymService>();
+
+        // Correspondence (email)
+        services.AddScoped<IEmailClient, GmailEmailClient>();
+        services.AddScoped<IEmailTriageService, ClaudeEmailTriageService>();
 
         return services;
     }

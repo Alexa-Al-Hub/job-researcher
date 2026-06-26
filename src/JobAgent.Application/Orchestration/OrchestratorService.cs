@@ -1,5 +1,6 @@
 using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Application.Common;
+using JobAgent.Application.Correspondence.Interfaces;
 using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Application.SearchCriteria.Interfaces;
 using JobAgent.Application.Users.Interfaces;
@@ -18,6 +19,7 @@ public class OrchestratorService : IOrchestrator
     private readonly IScoringService _scoringService;
     private readonly ITailorService _tailorService;
     private readonly IApplyService _applyService;
+    private readonly ICorrespondenceService _correspondenceService;
     private readonly IOptions<AgentOptions> _agentOptions;
     private readonly ILogger<OrchestratorService> _logger;
 
@@ -29,6 +31,7 @@ public class OrchestratorService : IOrchestrator
         IScoringService scoringService,
         ITailorService tailorService,
         IApplyService applyService,
+        ICorrespondenceService correspondenceService,
         IOptions<AgentOptions> agentOptions,
         ILogger<OrchestratorService> logger)
     {
@@ -39,6 +42,7 @@ public class OrchestratorService : IOrchestrator
         _scoringService = scoringService;
         _tailorService = tailorService;
         _applyService = applyService;
+        _correspondenceService = correspondenceService;
         _agentOptions = agentOptions;
         _logger = logger;
     }
@@ -68,6 +72,9 @@ public class OrchestratorService : IOrchestrator
         var applyTask = _applyService.ApplyAsync(user, ct);
 
         await Task.WhenAll(discoveryTask, applyTask);
+
+        // Phase 4: pull recruiter replies from the inboxes and update application statuses
+        await _correspondenceService.SyncAsync(user, ct);
 
         _logger.LogInformation("Orchestrator complete.");
     }

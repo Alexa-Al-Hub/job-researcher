@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using JobAgent.Application.Common;
 using JobAgent.Application.Jobs.Interfaces;
@@ -10,7 +9,6 @@ namespace JobAgent.Infrastructure.CvServices;
 
 public class ClaudeJobScoringService : IJobScoringService
 {
-    private static readonly HttpClient HttpClient = new();
     private readonly IOptions<CredentialOptions> _credentialOptions;
     private readonly ILogger<ClaudeJobScoringService> _logger;
 
@@ -22,8 +20,17 @@ public class ClaudeJobScoringService : IJobScoringService
         _logger = logger;
     }
 
-    public async Task<(int Score, string Reason)> ScoreAsync(Job job, IReadOnlyList<Skill> userSkills, int? yearsOfExperience = null, CancellationToken ct = default)
+    public Task<(int Score, string Reason)> ScoreAsync(Job job, IReadOnlyList<Skill> userSkills, int? yearsOfExperience = null, CancellationToken ct = default)
     {
+        // ===== AI USAGE MINIMIZED =====
+        // Scoring otherwise calls Claude Sonnet once per scraped job, with the full job
+        // description as input. Disabled to keep token usage minimal; the free keyword-based
+        // FallbackScore is used instead. To re-enable: put `async` back on the signature
+        // above, delete this early return, and remove the /* */ around the original body.
+        _logger.LogInformation("AI scoring skipped (token-saving mode) for \"{Title}\" — using keyword fallback", job.Title);
+        return Task.FromResult(FallbackScore(job, userSkills));
+
+        /*
         var apiKey = _credentialOptions.Value.AnthropicApiKey;
         if (string.IsNullOrEmpty(apiKey))
         {
@@ -65,24 +72,7 @@ public class ClaudeJobScoringService : IJobScoringService
 
         try
         {
-            var requestBody = JsonSerializer.Serialize(new
-            {
-                model = "@phr-vertex-ai-us/anthropic.claude-sonnet-4-5-20250514",
-                max_tokens = 256,
-                messages = new[] { new { role = "user", content = prompt } }
-            });
-
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.portkey.ai/v1/chat/completions");
-            request.Headers.Add("x-portkey-api-key", apiKey);
-            request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-            var response = await HttpClient.SendAsync(request, ct);
-            response.EnsureSuccessStatusCode();
-
-            var responseJson = await response.Content.ReadAsStringAsync(ct);
-            using var doc = JsonDocument.Parse(responseJson);
-            var text = doc.RootElement.GetProperty("choices")[0]
-                .GetProperty("message").GetProperty("content").GetString();
+            var text = await ClaudeApi.CompleteAsync(apiKey, ClaudeApi.SonnetModel, 256, prompt, ct);
 
             if (string.IsNullOrWhiteSpace(text))
                 return FallbackScore(job, userSkills);
@@ -94,6 +84,7 @@ public class ClaudeJobScoringService : IJobScoringService
             _logger.LogError(ex, "Error scoring job {JobId} via Claude API", job.Id);
             return FallbackScore(job, userSkills);
         }
+        */
     }
 
     private static (int Score, string Reason) FallbackScore(Job job, IReadOnlyList<Skill> userSkills)

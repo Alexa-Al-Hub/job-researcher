@@ -73,7 +73,7 @@ public class ApplyService : IApplyService
 
             try
             {
-                var success = await applier.ApplyAsync(app.Job, ct);
+                var success = await applier.ApplyAsync(app.Job, app.CvPath, ct);
                 if (success)
                 {
                     app.AppliedAt = DateTime.UtcNow;

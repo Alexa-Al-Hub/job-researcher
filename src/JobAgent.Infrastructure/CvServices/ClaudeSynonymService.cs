@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using JobAgent.Application.Common;
 using JobAgent.Application.SearchCriteria.Interfaces;
@@ -10,7 +9,6 @@ namespace JobAgent.Infrastructure.CvServices;
 
 public class ClaudeSynonymService : ISynonymService
 {
-    private static readonly HttpClient HttpClient = new();
     private readonly ISearchCriteriaRepository _searchCriteriaRepository;
     private readonly IOptions<CredentialOptions> _credentialOptions;
     private readonly IOptions<AgentOptions> _agentOptions;
@@ -98,24 +96,8 @@ public class ClaudeSynonymService : ISynonymService
 
         try
         {
-            var requestBody = JsonSerializer.Serialize(new
-            {
-                model = "@phr-vertex-ai-us/anthropic.claude-sonnet-4-5-20250514",
-                max_tokens = 256,
-                messages = new[] { new { role = "user", content = prompt } }
-            });
-
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.portkey.ai/v1/chat/completions");
-            request.Headers.Add("x-portkey-api-key", _credentialOptions.Value.AnthropicApiKey);
-            request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-            var response = await HttpClient.SendAsync(request, ct);
-            response.EnsureSuccessStatusCode();
-
-            var responseJson = await response.Content.ReadAsStringAsync(ct);
-            using var doc = JsonDocument.Parse(responseJson);
-            var text = doc.RootElement.GetProperty("choices")[0]
-                .GetProperty("message").GetProperty("content").GetString();
+            var text = await ClaudeApi.CompleteAsync(
+                _credentialOptions.Value.AnthropicApiKey!, ClaudeApi.SonnetModel, 256, prompt, ct);
 
             if (string.IsNullOrWhiteSpace(text))
                 return new List<string>();

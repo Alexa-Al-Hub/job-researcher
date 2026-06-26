@@ -16,6 +16,10 @@ logs/
 ## Storage
 **/storage/*.db
 
+## Gmail OAuth secrets / cached tokens
+**/gmail_credentials.json
+**/.gmail_tokens/
+
 ## CV folder
 cv/
 

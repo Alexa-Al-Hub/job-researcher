@@ -8,7 +8,9 @@ public class AgentOptions
 
     public bool DryRun { get; set; } = true;
     public int MaxApplicationsPerDay { get; set; } = 50;
-    public List<Platform> EnabledPlatforms { get; set; } = new() { Platform.Dou, Platform.Indeed };
+    // Intentionally empty: .NET config binding APPENDS to a pre-populated list rather than
+    // replacing it, so a default here would duplicate whatever appsettings provides.
+    public List<Platform> EnabledPlatforms { get; set; } = new();
     public string BaseCvPath { get; set; } = "cv/base_cv.docx";
     public List<string> TargetVacancies { get; set; } = new() { ".NET Developer" };
     public string TailoredCvOutputDir { get; set; } = "cv/tailored";

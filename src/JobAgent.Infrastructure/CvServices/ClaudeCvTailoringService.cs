@@ -1,6 +1,3 @@
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
 using JobAgent.Application.Common;
 using JobAgent.Application.Cv.Interfaces;
 using JobAgent.Domain.Entities;
@@ -11,7 +8,6 @@ namespace JobAgent.Infrastructure.CvServices;
 
 public class ClaudeCvTailoringService : ICvTailoringService
 {
-    private static readonly HttpClient HttpClient = new();
     private readonly ICvDocxService _docxService;
     private readonly IOptions<AgentOptions> _agentOptions;
     private readonly IOptions<CredentialOptions> _credentialOptions;
@@ -29,8 +25,19 @@ public class ClaudeCvTailoringService : ICvTailoringService
         _logger = logger;
     }
 
-    public async Task<string?> TailorAsync(Job job, string baseCvPath, CancellationToken ct = default)
+    public Task<string?> TailorAsync(Job job, string baseCvPath, CancellationToken ct = default)
     {
+        // ===== AI USAGE MINIMIZED =====
+        // CV tailoring is the single most token-expensive step in the pipeline:
+        // Claude Opus (~5x Sonnet pricing), up to 4096 output tokens, plus the full base
+        // CV and job description as input — run once for EVERY job that passes scoring.
+        // It is disabled here to keep token usage minimal; the base CV is used unchanged.
+        // To re-enable: put `async` back on the signature above, delete this early return,
+        // and remove the /* */ around the original body below.
+        _logger.LogInformation("CV tailoring skipped (token-saving mode) for \"{Title}\" — using base CV", job.Title);
+        return Task.FromResult<string?>(null);
+
+        /*
         var apiKey = _credentialOptions.Value.AnthropicApiKey;
         if (string.IsNullOrEmpty(apiKey))
         {
@@ -71,24 +78,7 @@ public class ClaudeCvTailoringService : ICvTailoringService
                 Return ONLY the tailored CV text, no explanations.
                 """;
 
-            var requestBody = JsonSerializer.Serialize(new
-            {
-                model = "@phr-vertex-ai-us/anthropic.claude-opus-4-7",
-                max_tokens = 4096,
-                messages = new[] { new { role = "user", content = prompt } }
-            });
-
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.portkey.ai/v1/chat/completions");
-            request.Headers.Add("x-portkey-api-key", apiKey);
-            request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-            var response = await HttpClient.SendAsync(request, ct);
-            response.EnsureSuccessStatusCode();
-
-            var responseJson = await response.Content.ReadAsStringAsync(ct);
-            using var doc = JsonDocument.Parse(responseJson);
-            var choices = doc.RootElement.GetProperty("choices");
-            var tailoredText = choices[0].GetProperty("message").GetProperty("content").GetString() ?? "";
+            var tailoredText = await ClaudeApi.CompleteAsync(apiKey, ClaudeApi.OpusModel, 4096, prompt, ct);
 
             if (string.IsNullOrWhiteSpace(tailoredText))
             {
@@ -105,5 +95,6 @@ public class ClaudeCvTailoringService : ICvTailoringService
             _logger.LogError(ex, "Error tailoring CV via Claude API for job {JobId}", job.Id);
             return null;
         }
+        */
     }
 }

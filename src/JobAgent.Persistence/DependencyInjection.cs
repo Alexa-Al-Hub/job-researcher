@@ -1,4 +1,5 @@
 using JobAgent.Application.Applications.Interfaces;
+using JobAgent.Application.Correspondence.Interfaces;
 using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Application.SearchCriteria.Interfaces;
 using JobAgent.Application.Skills.Interfaces;
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISearchCriteriaRepository, SearchCriteriaRepository>();
         services.AddScoped<ISkillRepository, SkillRepository>();
+        services.AddScoped<ICorrespondenceRepository, CorrespondenceRepository>();
 
         return services;
     }

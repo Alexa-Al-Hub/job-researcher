@@ -1,6 +1,8 @@
 using JobAgent.Application.Applications.Interfaces;
 using JobAgent.Application.Applications.Services;
 using JobAgent.Application.Common;
+using JobAgent.Application.Correspondence.Interfaces;
+using JobAgent.Application.Correspondence.Services;
 using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Application.Jobs.Mapping;
 using JobAgent.Application.Jobs.Services;
@@ -33,6 +35,8 @@ try
     builder.Services.Configure<CredentialOptions>(builder.Configuration.GetSection(CredentialOptions.SectionName));
     builder.Services.Configure<RateLimitOptions>(builder.Configuration.GetSection(RateLimitOptions.SectionName));
     builder.Services.Configure<ScoringOptions>(builder.Configuration.GetSection(ScoringOptions.SectionName));
+    builder.Services.Configure<GmailOptions>(builder.Configuration.GetSection(GmailOptions.SectionName));
+    builder.Services.Configure<ApplicantProfileOptions>(builder.Configuration.GetSection(ApplicantProfileOptions.SectionName));
 
     // AutoMapper
     builder.Services.AddAutoMapper(typeof(JobProfile).Assembly);
@@ -50,6 +54,7 @@ try
     builder.Services.AddScoped<IScoringService, ScoringService>();
     builder.Services.AddScoped<ITailorService, TailorService>();
     builder.Services.AddScoped<IApplyService, ApplyService>();
+    builder.Services.AddScoped<ICorrespondenceService, CorrespondenceService>();
     builder.Services.AddScoped<IOrchestrator, OrchestratorService>();
 
     // Hosted service

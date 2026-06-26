@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using JobAgent.Application.Common;
 using JobAgent.Application.Cv.Interfaces;
@@ -10,7 +9,6 @@ namespace JobAgent.Infrastructure.CvServices;
 
 public class ClaudeCvParsingService : ICvParsingService
 {
-    private static readonly HttpClient HttpClient = new();
     private readonly ICvDocxService _docxService;
     private readonly IOptions<CredentialOptions> _credentialOptions;
     private readonly ILogger<ClaudeCvParsingService> _logger;
@@ -76,24 +74,7 @@ public class ClaudeCvParsingService : ICvParsingService
                 {{cvText}}
                 """;
 
-            var requestBody = JsonSerializer.Serialize(new
-            {
-                model = "@phr-vertex-ai-us/anthropic.claude-opus-4-7",
-                max_tokens = 4096,
-                messages = new[] { new { role = "user", content = prompt } }
-            });
-
-            var request = new HttpRequestMessage(HttpMethod.Post, "https://api.portkey.ai/v1/chat/completions");
-            request.Headers.Add("x-portkey-api-key", apiKey);
-            request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-
-            var response = await HttpClient.SendAsync(request, ct);
-            response.EnsureSuccessStatusCode();
-
-            var responseJson = await response.Content.ReadAsStringAsync(ct);
-            using var doc = JsonDocument.Parse(responseJson);
-            var choices = doc.RootElement.GetProperty("choices");
-            var text = choices[0].GetProperty("message").GetProperty("content").GetString();
+            var text = await ClaudeApi.CompleteAsync(apiKey, ClaudeApi.OpusModel, 4096, prompt, ct);
 
             if (string.IsNullOrWhiteSpace(text))
             {

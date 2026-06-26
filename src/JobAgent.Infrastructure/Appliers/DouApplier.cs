@@ -1,25 +1,28 @@
 using JobAgent.Application.Applications.Interfaces;
-using JobAgent.Domain.Entities;
+using JobAgent.Application.Common;
 using JobAgent.Domain.Enums;
+using JobAgent.Infrastructure.Abstractions;
+using JobAgent.Infrastructure.Browser;
+using JobAgent.Infrastructure.Constants;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JobAgent.Infrastructure.Appliers;
 
-public class DouApplier : IApplier
+public class DouApplier : BaseApplier
 {
-    public Platform Platform => Platform.Dou;
-    private readonly ILogger<DouApplier> _logger;
+    public override Platform Platform => Platform.Dou;
+    protected override string ApplyButtonSelector => ApplierConstants.DouApplyButton;
 
-    public DouApplier(ILogger<DouApplier> logger)
+    public DouApplier(
+        PlaywrightBrowserFactory browserFactory,
+        IApplicationFormService formService,
+        IOptions<RateLimitOptions> rateLimitOptions,
+        ILogger<DouApplier> logger)
+        : base(browserFactory, formService, rateLimitOptions, logger)
     {
-        _logger = logger;
     }
 
-    public Task<bool> ApplyAsync(Job job, CancellationToken ct = default)
-    {
-        // DOU redirects to external company sites — mark for manual follow-up
-        _logger.LogInformation("DOU job requires manual application: {Title} at {Company} — {Url}",
-            job.Title, job.Company, job.Url);
-        return Task.FromResult(false);
-    }
+    // Many DOU vacancies redirect to an external company site; in that case no on-page
+    // form is found and the application is routed to manual follow-up.
 }
