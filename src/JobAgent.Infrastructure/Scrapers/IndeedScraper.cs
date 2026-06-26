@@ -13,6 +13,7 @@ namespace JobAgent.Infrastructure.Scrapers;
 public class IndeedScraper : BaseScraper
 {
     public override Platform Platform => Platform.Indeed;
+    protected override string DescriptionSelector => IndeedDescriptionSelector;
 
     public IndeedScraper(
         PlaywrightBrowserFactory browserFactory,

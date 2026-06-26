@@ -3,6 +3,7 @@ using JobAgent.Application.Jobs.DTOs;
 using JobAgent.Application.Jobs.Interfaces;
 using JobAgent.Domain.Enums;
 using JobAgent.Infrastructure.Browser;
+using JobAgent.Infrastructure.Constants;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
@@ -16,6 +17,9 @@ public abstract class BaseScraper : IScraper
     protected readonly ILogger Logger;
 
     public abstract Platform Platform { get; }
+
+    /// <summary>CSS selector locating the description container on a job detail page.</summary>
+    protected abstract string DescriptionSelector { get; }
 
     protected BaseScraper(
         PlaywrightBrowserFactory browserFactory,
@@ -47,6 +51,66 @@ public abstract class BaseScraper : IScraper
         {
             await page.CloseAsync();
         }
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> FetchDescriptionsAsync(
+        IReadOnlyList<string> urls, CancellationToken ct = default)
+    {
+        var result = new Dictionary<string, string>();
+        if (urls.Count == 0 || !CanExecute())
+            return result;
+
+        var page = await BrowserFactory.NewPageAsync();
+        try
+        {
+            await BeforeScrapingAsync(page, ct);
+
+            foreach (var url in urls)
+            {
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    var description = await FetchDescriptionAsync(page, url, ct);
+                    if (!string.IsNullOrWhiteSpace(description))
+                        result[url] = description;
+                    else
+                        Logger.LogWarning("No description found at {Url}", url);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Logger.LogWarning(ex, "Failed to fetch description from {Url}", url);
+                }
+
+                await Task.Delay(RateLimit.MinDelayBetweenRequestsMs, ct);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "Error fetching {Platform} descriptions", Platform);
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
+
+        return result;
+    }
+
+    protected virtual async Task<string?> FetchDescriptionAsync(IPage page, string url, CancellationToken ct)
+    {
+        await page.GotoAsync(url, new PageGotoOptions
+        {
+            WaitUntil = WaitUntilState.DOMContentLoaded,
+            Timeout = ScraperConstants.DetailPageTimeout
+        });
+
+        var element = await page.WaitForSelectorAsync(DescriptionSelector,
+            new PageWaitForSelectorOptions { Timeout = ScraperConstants.DetailPageTimeout });
+        if (element == null)
+            return null;
+
+        var text = await element.InnerTextAsync();
+        return text.Trim();
     }
 
     protected abstract Task<IReadOnlyList<CreateJobRequest>> ParseJobsAsync(

@@ -14,6 +14,7 @@ public class OrchestratorService : IOrchestrator
     private readonly ICvSyncService _cvSync;
     private readonly ISynonymService _synonymService;
     private readonly IScrapeService _scrapeService;
+    private readonly IDescriptionService _descriptionService;
     private readonly IScoringService _scoringService;
     private readonly ITailorService _tailorService;
     private readonly IApplyService _applyService;
@@ -24,6 +25,7 @@ public class OrchestratorService : IOrchestrator
         ICvSyncService cvSync,
         ISynonymService synonymService,
         IScrapeService scrapeService,
+        IDescriptionService descriptionService,
         IScoringService scoringService,
         ITailorService tailorService,
         IApplyService applyService,
@@ -33,6 +35,7 @@ public class OrchestratorService : IOrchestrator
         _cvSync = cvSync;
         _synonymService = synonymService;
         _scrapeService = scrapeService;
+        _descriptionService = descriptionService;
         _scoringService = scoringService;
         _tailorService = tailorService;
         _applyService = applyService;
@@ -72,6 +75,8 @@ public class OrchestratorService : IOrchestrator
     private async Task DiscoverAsync(User user, CancellationToken ct)
     {
         await _scrapeService.ScrapeAsync(user, ct);
+        // Phase 1.5: enrich scraped jobs with full descriptions from their detail pages
+        await _descriptionService.FetchAsync(ct);
         await _scoringService.ScoreAsync(user, ct);
         await _tailorService.TailorAsync(user, ct);
     }

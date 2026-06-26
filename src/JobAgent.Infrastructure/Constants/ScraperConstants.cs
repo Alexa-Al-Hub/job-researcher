@@ -2,6 +2,9 @@ namespace JobAgent.Infrastructure.Constants;
 
 public static class ScraperConstants
 {
+    // Shared
+    public const int DetailPageTimeout = 15000;
+
     // DOU
     public const string DouBaseUrl = "https://jobs.dou.ua/vacancies/?search=";
     public const string DouVacancySelector = ".l-vacancy";
@@ -9,6 +12,7 @@ public static class ScraperConstants
     public const string DouTitleSelector = ".vt";
     public const string DouCompanySelector = ".company";
     public const string DouSalarySelector = ".salary";
+    public const string DouDescriptionSelector = ".b-typo.vacancy-section, .l-vacancy .text";
     public const int DouWaitTimeout = 10000;
 
     // Indeed
@@ -17,6 +21,7 @@ public static class ScraperConstants
     public const string IndeedTitleSelector = "h2.jobTitle a, .jobTitle > a";
     public const string IndeedCompanySelector = "[data-testid='company-name'], .companyName";
     public const string IndeedSalarySelector = "[data-testid='attribute_snippet_testid'], .salary-snippet-container";
+    public const string IndeedDescriptionSelector = "#jobDescriptionText, [data-testid='jobsearch-JobComponent-description']";
     public const string IndeedOrigin = "https://www.indeed.com";
 
     // LinkedIn
@@ -30,6 +35,7 @@ public static class ScraperConstants
     public const string LinkedInUsernameSelector = "#username";
     public const string LinkedInPasswordSelector = "#password";
     public const string LinkedInSubmitSelector = "[data-litms-control-urn='login-submit']";
+    public const string LinkedInDescriptionSelector = ".jobs-description__content, .show-more-less-html__markup, #job-details";
     public const int LinkedInScrollCount = 3;
     public const int LinkedInLoginTimeout = 30000;
 
@@ -46,5 +52,6 @@ public static class ScraperConstants
     public const string GlassdoorEmailSubmitSelector = "[data-test='email-form-button'], button[type='submit']";
     public const string GlassdoorPasswordSubmitSelector = "[data-test='password-form-button'], button[type='submit']";
     public const string GlassdoorNextPageSelector = "[data-test='pagination-next'], button[aria-label='Next']";
+    public const string GlassdoorDescriptionSelector = "[data-test='jobDescriptionContent'], .JobDetails_jobDescription__uW_fK, .desc";
     public const int GlassdoorMaxPages = 3;
 }

@@ -13,6 +13,7 @@ namespace JobAgent.Infrastructure.Scrapers;
 public class LinkedInScraper : BaseScraper
 {
     public override Platform Platform => Platform.LinkedIn;
+    protected override string DescriptionSelector => LinkedInDescriptionSelector;
 
     private readonly IOptions<CredentialOptions> _credentials;
 

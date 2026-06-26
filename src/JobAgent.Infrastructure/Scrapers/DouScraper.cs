@@ -13,6 +13,7 @@ namespace JobAgent.Infrastructure.Scrapers;
 public class DouScraper : BaseScraper
 {
     public override Platform Platform => Platform.Dou;
+    protected override string DescriptionSelector => DouDescriptionSelector;
 
     public DouScraper(
         PlaywrightBrowserFactory browserFactory,
