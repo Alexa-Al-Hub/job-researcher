@@ -13,6 +13,7 @@ namespace JobAgent.Infrastructure.Scrapers;
 public class GlassdoorScraper : BaseScraper
 {
     public override Platform Platform => Platform.Glassdoor;
+    protected override string DescriptionSelector => GlassdoorDescriptionSelector;
 
     private readonly IOptions<CredentialOptions> _credentials;
 

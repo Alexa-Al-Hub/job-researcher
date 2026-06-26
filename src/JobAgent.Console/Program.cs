@@ -46,6 +46,7 @@ try
     // Application services
     builder.Services.AddScoped<ICvSyncService, CvSyncService>();
     builder.Services.AddScoped<IScrapeService, ScrapeService>();
+    builder.Services.AddScoped<IDescriptionService, DescriptionService>();
     builder.Services.AddScoped<IScoringService, ScoringService>();
     builder.Services.AddScoped<ITailorService, TailorService>();
     builder.Services.AddScoped<IApplyService, ApplyService>();
